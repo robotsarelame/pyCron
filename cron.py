@@ -60,25 +60,42 @@ class Cron():
         return self.parser.parse_args(args)
 
     def _handle_add_task(self, args):
-        now = datetime.datetime.now()
+        now = CronDateTime.now()
+        cron_time = self._create_des_time(args.minute, args.hour, args.day, args.month, args.weekday)
         command = args.command
-        if now.month == args.month and now.day == args.day and now.hour == args.hour: #TODO stub, remove after debug is complete
+
+        #TODO rework! should always run from queue
+        if now == cron_time:
             self._execute_immediately(command)
-        #if now.month == args.month and now.day == args.day and now.hour == args.hour and now.minute == args.minute and now.weekday():
-        #    self._execute_immediately(command)
         else:
-            date = self._create_des_time(args.minute, args.hour, args.day, args.month, args.weekday)
-            self._add_to_task_queue(command, date)
+            self._add_to_task_queue(command, cron_time)
 
     def _execute_immediately(self, command):
         from subprocess import call
         call(command)
 
-    def _create_des_time(self, m, h, d, M, w): #TODO implement!
-        pass
+    def _create_des_time(self, m, h, d, M, w): #TODO implement weekdays support
+        return CronDateTime(1,M,d,h,m)
 
     def _add_to_task_queue(self, command, date): #TODO implement with greenlets
         pass
+
+
+class CronDateTime(datetime.datetime): #TODO further rework
+    """ Custom datetime.datetime representation with app-specific equality rules """
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return \
+                self.month == other.month and \
+                self.day == other.day and \
+                self.hour == other.hour and \
+                self.minute == other.minute
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 def main(args=None):
     # logger initialize
@@ -103,6 +120,4 @@ def main(args=None):
         pass
 
 if __name__ == '__main__':
-
-    sys.exit(main('add 0 0 30 1 0 man ls'.split()))
-
+    sys.exit(main('add 59 1 30 1 0 ls'.split()))
